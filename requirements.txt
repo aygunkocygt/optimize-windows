@@ -1,0 +1,15 @@
+pywin32>=306
+wmi>=1.5.1
+pyinstaller>=6.0.0
+colorama>=0.4.6
+tqdm>=4.66.0
+
+# Architecture dependencies (already included in stdlib)
+# - threading (stdlib)
+# - dataclasses (stdlib)
+# - enum (stdlib)
+# - abc (stdlib)
+# - pathlib (stdlib)
+# - json (stdlib)
+# - logging (stdlib)
+
