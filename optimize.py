@@ -88,6 +88,7 @@ class WindowsOptimizer:
         self.features_optimizer = FeaturesOptimizer()
         self.performance_optimizer = PerformanceOptimizer()
         self.privacy_optimizer = PrivacyOptimizer()
+        self.apps_remover = AppsRemover()
     
     def print_header(self):
         """Başlık yazdır"""

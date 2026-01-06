@@ -40,7 +40,6 @@ class AppsRemover:
         "Microsoft.Todos",                       # Microsoft To Do
         "Microsoft.Wallet",                      # Wallet
         "Microsoft.WindowsAlarms",               # Alarms & Clock
-        "Microsoft.WindowsCamera",               # Camera
         "Microsoft.WindowsFeedbackHub",          # Feedback Hub
         "Microsoft.WindowsMaps",                 # Maps
         "Microsoft.WindowsSoundRecorder",        # Voice Recorder
@@ -67,6 +66,7 @@ class AppsRemover:
         "Microsoft.WindowsCalculator",           # Calculator (gerekli olabilir)
         "Microsoft.WindowsTerminal",            # Windows Terminal
         "Microsoft.VisualStudioCode",            # VS Code (eğer yüklüyse)
+        "Microsoft.WindowsCamera",               # Camera (Zoom, Teams vb. için gerekli)
     ]
     
     def __init__(self):
