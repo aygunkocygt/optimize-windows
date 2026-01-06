@@ -33,6 +33,7 @@ from modules.registry import RegistryOptimizer
 from modules.features import FeaturesOptimizer
 from modules.performance import PerformanceOptimizer
 from modules.privacy import PrivacyOptimizer
+from modules.apps_remover import AppsRemover
 
 # UI modülünü import et
 try:
@@ -125,7 +126,8 @@ class WindowsOptimizer:
             ("Kayıt Defteri", self.registry_optimizer.optimize, "Kayıt defteri ayarları uygulanıyor..."),
             ("Windows Özellikleri", self.features_optimizer.optimize, "Windows özellikleri kontrol ediliyor..."),
             ("Performans", self.performance_optimizer.optimize, "Performans ayarları optimize ediliyor..."),
-            ("Gizlilik", self.privacy_optimizer.optimize, "Gizlilik ayarları uygulanıyor...")
+            ("Gizlilik", self.privacy_optimizer.optimize, "Gizlilik ayarları uygulanıyor..."),
+            ("Gereksiz Uygulamalar", lambda: self.apps_remover.optimize(remove_mode=True), "Gereksiz uygulamalar kaldırılıyor...")
         ]
         
         total_optimizers = len(optimizers)

@@ -331,12 +331,18 @@ sc config dmwappushservice start= disabled >nul 2>&1
             import winreg
             import subprocess
             
-            # Widgets servisini durdur
-            try:
-                subprocess.run(["sc", "stop", "WidgetsService"], capture_output=True, timeout=5, check=False)
-                subprocess.run(["sc", "config", "WidgetsService", "start=", "disabled"], capture_output=True, timeout=5, check=False)
-            except:
-                pass
+            # Widgets servislerini durdur (farklı isimlerle olabilir)
+            widget_services = ["WidgetsService", "widgets", "Widgets"]
+            for service in widget_services:
+                try:
+                    # Servis var mı kontrol et
+                    result = subprocess.run(["sc", "query", service], capture_output=True, timeout=5, check=False)
+                    if result.returncode == 0:
+                        # Servis varsa durdur ve devre dışı bırak
+                        subprocess.run(["sc", "stop", service], capture_output=True, timeout=5, check=False)
+                        subprocess.run(["sc", "config", service, "start=", "disabled"], capture_output=True, timeout=5, check=False)
+                except:
+                    pass
             
             # Widgets kayıt defteri ayarları
             widgets_paths = [
@@ -348,7 +354,12 @@ sc config dmwappushservice start= disabled >nul 2>&1
             for hkey_name, key_path, value_name in widgets_paths:
                 try:
                     hkey = winreg.HKEY_CURRENT_USER
-                    key = winreg.OpenKey(hkey, key_path, 0, winreg.KEY_WRITE)
+                    try:
+                        key = winreg.OpenKey(hkey, key_path, 0, winreg.KEY_WRITE)
+                    except FileNotFoundError:
+                        key = winreg.CreateKey(hkey, key_path)
+                        key = winreg.OpenKey(hkey, key_path, 0, winreg.KEY_WRITE)
+                    
                     winreg.SetValueEx(key, value_name, 0, winreg.REG_DWORD, 0)
                     winreg.CloseKey(key)
                     changes_count += 1

@@ -93,6 +93,22 @@ python restore.py
 - Cortana kapatıldı
 - Konum servisleri kapatıldı
 
+### Gereksiz Uygulamalar
+- **Phone Link** kaldırıldı
+- **Xbox App** ve tüm Xbox uygulamaları kaldırıldı
+- **Bing uygulamaları** (News, Weather, Finance, Sports, Travel) kaldırıldı
+- **Get Help, Get Started** kaldırıldı
+- **3D Viewer, Mixed Reality Portal** kaldırıldı
+- **Skype, People, Wallet** kaldırıldı
+- **Feedback Hub, Maps, Alarms** kaldırıldı
+- **Groove Music, Movies & TV** kaldırıldı
+- Ve daha fazlası...
+
+**Korunan Uygulamalar:**
+- Microsoft Store (gerekli olabilir)
+- Calculator (gerekli olabilir)
+- Windows Terminal
+
 Detaylı liste için: [DEGISIKLIKLER.md](DEGISIKLIKLER.md)
 
 ## 🏗️ Mimari

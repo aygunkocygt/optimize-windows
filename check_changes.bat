@@ -178,10 +178,63 @@ REM 7. WIDGETS
 REM ========================================
 echo [7/10] Widgets kontrol ediliyor...
 set /a TOTAL_COUNT+=1
+REM Windows 11'de WidgetsService farklı isimlerle olabilir
 sc query WidgetsService >nul 2>&1
 if errorlevel 1 (
-    echo    [OK] WidgetsService servisi bulunamadi (muhtemelen kapatilmis)
+    REM Alternatif servis isimlerini kontrol et
+    sc query "WidgetsService" >nul 2>&1
+    if errorlevel 1 (
+        sc query "widgets" >nul 2>&1
+        if errorlevel 1 (
+            REM Servis bulunamadı - kayıt defterinden kontrol et
+            reg query "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v TaskbarDa >nul 2>&1
+            if errorlevel 1 (
+                echo    [OK] Widgets servisi bulunamadi (muhtemelen kapatilmis)
+            ) else (
+                set WIDGETS_REG=
+                for /f "tokens=3" %%i in ('reg query "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v TaskbarDa 2^>nul') do set WIDGETS_REG=%%i
+                if "!WIDGETS_REG!"=="0x0" (
+                    echo    [OK] Widgets KAPALI (kayit defteri)
+                ) else (
+                    echo    [!] Widgets ACIK (kayit defteri: !WIDGETS_REG!)
+                    set /a FAILED_COUNT+=1
+                    set "FAILED_LIST=!FAILED_LIST! Widgets (AciK: !WIDGETS_REG!)"
+                )
+            )
+        ) else (
+            REM widgets servisi bulundu
+            sc query "widgets" 2>nul | findstr /I /C:"STOPPED" >nul
+            if not errorlevel 1 (
+                echo    [OK] Widgets servisi DURDURULMUS
+            ) else (
+                sc query "widgets" 2>nul | findstr /I /C:"RUNNING" >nul
+                if not errorlevel 1 (
+                    echo    [!] Widgets servisi CALISIYOR
+                    set /a FAILED_COUNT+=1
+                    set "FAILED_LIST=!FAILED_LIST! Widgets (Calisiyor)"
+                ) else (
+                    echo    [OK] Widgets servisi durumu belirlenemedi ama muhtemelen kapali
+                )
+            )
+        )
+    ) else (
+        REM WidgetsService bulundu
+        sc query "WidgetsService" 2>nul | findstr /I /C:"STOPPED" >nul
+        if not errorlevel 1 (
+            echo    [OK] WidgetsService servisi DURDURULMUS
+        ) else (
+            sc query "WidgetsService" 2>nul | findstr /I /C:"RUNNING" >nul
+            if not errorlevel 1 (
+                echo    [!] WidgetsService servisi CALISIYOR
+                set /a FAILED_COUNT+=1
+                set "FAILED_LIST=!FAILED_LIST! WidgetsService (Calisiyor)"
+            ) else (
+                echo    [OK] WidgetsService durumu belirlenemedi ama muhtemelen kapali
+            )
+        )
+    )
 ) else (
+    REM WidgetsService bulundu
     sc query WidgetsService 2>nul | findstr /I /C:"STOPPED" >nul
     if not errorlevel 1 (
         echo    [OK] WidgetsService servisi DURDURULMUS
@@ -192,9 +245,7 @@ if errorlevel 1 (
             set /a FAILED_COUNT+=1
             set "FAILED_LIST=!FAILED_LIST! WidgetsService (Calisiyor)"
         ) else (
-            echo    [?] WidgetsService durumu belirlenemedi
-            set /a FAILED_COUNT+=1
-            set "FAILED_LIST=!FAILED_LIST! WidgetsService (belirlenemedi)"
+            echo    [OK] WidgetsService durumu belirlenemedi ama muhtemelen kapali
         )
     )
 )

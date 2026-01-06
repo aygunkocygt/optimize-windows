@@ -178,13 +178,65 @@
 
 ---
 
+## 📱 6. GEREKSİZ UYGULAMALAR
+
+### Kaldırılan Uygulamalar (30+ uygulama)
+
+**Phone Link ve İlgili:**
+- Microsoft.YourPhone (Phone Link)
+- Microsoft.Phone (Phone - eski)
+
+**Xbox Uygulamaları:**
+- Microsoft.XboxApp (Xbox App)
+- Microsoft.XboxGameOverlay (Xbox Game Bar)
+- Microsoft.XboxGamingOverlay (Xbox Gaming Overlay)
+- Microsoft.XboxIdentityProvider (Xbox Identity Provider)
+- Microsoft.XboxSpeechToTextOverlay (Xbox Speech to Text)
+- Microsoft.Xbox.TCUI (Xbox TCUI)
+
+**Bing Uygulamaları:**
+- Microsoft.BingNews (Bing News)
+- Microsoft.BingWeather (Bing Weather)
+- Microsoft.BingFinance (Bing Finance)
+- Microsoft.BingSports (Bing Sports)
+- Microsoft.BingTravel (Bing Travel)
+
+**Gereksiz Microsoft Uygulamaları:**
+- Microsoft.GetHelp (Get Help)
+- Microsoft.Getstarted (Get Started)
+- Microsoft.Microsoft3DViewer (3D Viewer)
+- Microsoft.MicrosoftOfficeHub (Office Hub)
+- Microsoft.MicrosoftSolitaireCollection (Solitaire Collection)
+- Microsoft.MixedReality.Portal (Mixed Reality Portal)
+- Microsoft.People (People)
+- Microsoft.SkypeApp (Skype)
+- Microsoft.StorePurchaseApp (Store Purchase App)
+- Microsoft.Todos (Microsoft To Do)
+- Microsoft.Wallet (Wallet)
+- Microsoft.WindowsAlarms (Alarms & Clock)
+- Microsoft.WindowsCamera (Camera)
+- Microsoft.WindowsFeedbackHub (Feedback Hub)
+- Microsoft.WindowsMaps (Maps)
+- Microsoft.WindowsSoundRecorder (Voice Recorder)
+- Microsoft.ZuneMusic (Groove Music)
+- Microsoft.ZuneVideo (Movies & TV)
+
+### ✅ Korunan Uygulamalar
+- Microsoft.WindowsStore (Microsoft Store - gerekli olabilir)
+- Microsoft.WindowsCalculator (Calculator - gerekli olabilir)
+- Microsoft.WindowsTerminal (Windows Terminal)
+- Microsoft.VisualStudioCode (VS Code - eğer yüklüyse)
+
+---
+
 ## 📊 ÖZET İSTATİSTİKLER
 
-- **Toplam Servis Değişikliği:** ~19 servis devre dışı
-- **Toplam Kayıt Defteri Değişikliği:** ~18+ ayar
+- **Toplam Servis Değişikliği:** ~24 servis devre dışı
+- **Toplam Kayıt Defteri Değişikliği:** ~30+ ayar
 - **Performans Optimizasyonları:** 5+ ayar
-- **Gizlilik Optimizasyonları:** 4+ ayar
+- **Gizlilik Optimizasyonları:** 15+ ayar
 - **Windows Özellikleri:** 3 özellik kapatıldı
+- **Kaldırılan Uygulamalar:** 30+ gereksiz uygulama
 
 ---
 
