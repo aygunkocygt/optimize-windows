@@ -2,12 +2,6 @@
 
 Windows 11 25H2 için dengeli optimizasyon aracı. Atlas OS benzeri optimizasyonlar sunar ancak oyun performansı ve yazılım geliştirme uyumluluğunu dengeler.
 
-**Sistem Özellikleri:**
-- Windows 11 25H2
-- Ryzen 5 5600X
-- RTX 3070
-- 32GB DDR4 RAM
-
 ## 🚀 Hızlı Başlangıç
 
 ### Kurulum
