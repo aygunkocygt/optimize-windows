@@ -179,6 +179,22 @@ python -m pip install --user -r requirements.txt
 - Yönetici haklarıyla çalıştırdığınızdan emin olun
 - Windows Defender uyarısı çıkabilir (normaldir, "Yine de çalıştır")
 
+### Restart sonrası değişiklikler geri alındı mı?
+Restart sırasında Windows'un loader göstermesi **normaldir**. Değişiklikleri kontrol etmek için:
+
+```powershell
+.\check_changes.bat
+```
+
+Bu script şunları kontrol eder:
+- Telemetri durumu
+- Game Mode durumu
+- GPU Scheduling durumu
+- Servis durumları
+- Güç planı
+
+Eğer bazı ayarlar geri alınmışsa, `Windows11Optimizer.exe` dosyasını tekrar çalıştırabilirsiniz.
+
 ## ⚠️ Uyarılar
 
 - Bu script sistem ayarlarını değiştirir
