@@ -16,6 +16,8 @@ class FeaturesOptimizer:
         "MicrosoftWindowsPowerShellV2Root",  # PowerShell 2.0 (eski)
         "WorkFolders-Client",                # Work Folders Client
         "MediaPlayback",                     # Media Features (isteğe bağlı)
+        "WindowsMediaPlayer",                # Windows Media Player (isteğe bağlı)
+        "Internet-Explorer-Optional-amd64",  # Internet Explorer (kaldırıldı ama bazı sistemlerde kalabilir)
     ]
     
     # Korunacak özellikler (yazılım geliştirme için)

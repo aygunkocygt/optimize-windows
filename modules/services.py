@@ -34,6 +34,12 @@ class ServiceOptimizer:
         "WpcMonSvc",                    # Parental Controls
         "WpnService",                   # Windows Push Notifications Service
         "SysMain",                      # SysMain (Superfetch) - SSD için gereksiz
+        "WidgetsService",               # Windows 11 Widgets Service
+        "OneSyncSvc",                   # OneDrive Sync Service (isteğe bağlı)
+        "WaaSMedicSvc",                 # Windows Update Medic Service (güncelleme için gerekli ama veri toplar)
+        "PcaSvc",                       # Program Compatibility Assistant Service
+        "TrkWks",                       # Distributed Link Tracking Client
+        "Browser",                       # Computer Browser (eski ağ özelliği)
     ]
     
     # Korunacak servisler (yazılım geliştirme için gerekli)

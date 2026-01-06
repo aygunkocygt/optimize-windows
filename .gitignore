@@ -32,6 +32,9 @@ build/
 dist/
 *.spec
 
+# Temporary scripts
+telemetry_blocker.bat
+
 # Scripts (build.bat is the main one)
 # install.ps1 (removed - use build.bat)
 # build_exe.py (removed - use build.bat)

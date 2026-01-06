@@ -71,15 +71,39 @@ class RegistryOptimizer:
         
         # Performans optimizasyonları
         optimizations = [
-            # Telemetri kapatma
+            # Telemetri kapatma (tüm konumlar - Windows'un tekrar açmasını engellemek için)
             ("HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\DataCollection", 
              "AllowTelemetry", winreg.REG_DWORD, 0),
             ("HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection", 
              "AllowTelemetry", winreg.REG_DWORD, 0),
+            ("HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\DataCollection", 
+             "MaxTelemetryAllowed", winreg.REG_DWORD, 0),
+            ("HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection", 
+             "MaxTelemetryAllowed", winreg.REG_DWORD, 0),
+            ("HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\DataCollection", 
+             "DoNotShowFeedbackNotifications", winreg.REG_DWORD, 1),
+            ("HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Privacy", 
+             "TailoredExperiencesWithDiagnosticDataEnabled", winreg.REG_DWORD, 0),
+            ("HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Privacy", 
+             "AllowInputPersonalization", winreg.REG_DWORD, 0),
             
             # Windows Update optimizasyonu
             ("HKLM\\SOFTWARE\\Microsoft\\WindowsUpdate\\UX\\Settings", 
              "UxOption", winreg.REG_DWORD, 1),
+            
+            # Windows Update Delivery Optimization (P2P - veri hortumlama)
+            ("HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\DeliveryOptimization\\Config", 
+             "DODownloadMode", winreg.REG_DWORD, 0),  # 0 = Disabled
+            ("HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeliveryOptimization", 
+             "DODownloadMode", winreg.REG_DWORD, 0),
+            
+            # Activity History (Timeline) - veri toplama
+            ("HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\System", 
+             "EnableActivityFeed", winreg.REG_DWORD, 0),
+            ("HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\System", 
+             "PublishUserActivities", winreg.REG_DWORD, 0),
+            ("HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\System", 
+             "UploadUserActivities", winreg.REG_DWORD, 0),
             
             # Game Mode aktif
             ("HKCU\\SOFTWARE\\Microsoft\\GameBar", 

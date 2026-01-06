@@ -61,6 +61,14 @@ class PrivacyConfig:
 
 
 @dataclass
+class SecurityConfig:
+    """Security configuration"""
+    disable_windows_defender: bool = False  # Varsayılan: Açık (güvenlik için)
+    disable_defender_realtime: bool = False  # Real-time protection kapat
+    disable_defender_cloud: bool = False  # Cloud protection kapat
+
+
+@dataclass
 class BackupConfig:
     """Backup configuration"""
     enabled: bool = True
@@ -99,6 +107,7 @@ class Config:
             "registry": asdict(self.registry),
             "performance": asdict(self.performance),
             "privacy": asdict(self.privacy),
+            "security": asdict(self.security),
             "backup": asdict(self.backup),
             "logging": asdict(self.logging),
         }
@@ -117,6 +126,8 @@ class Config:
             config.performance = PerformanceConfig(**data["performance"])
         if "privacy" in data:
             config.privacy = PrivacyConfig(**data["privacy"])
+        if "security" in data:
+            config.security = SecurityConfig(**data["security"])
         if "backup" in data:
             config.backup = BackupConfig(**data["backup"])
         if "logging" in data:

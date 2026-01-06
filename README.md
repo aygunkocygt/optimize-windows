@@ -76,8 +76,19 @@ python restore.py
 - USB ve PCIe güç yönetimi kapatıldı
 - Görsel efektler optimize edildi
 
-### Gizlilik
-- Windows Telemetry kapatıldı
+### Gizlilik ve Veri Toplama Engelleme
+- **Windows Telemetry** kalıcı olarak kapatıldı (Windows'un tekrar açması engellenir)
+- **Scheduled Task** ile sürekli kontrol (her 5 dakikada bir)
+- **Copilot (Windows 11 25H2)** kapatıldı
+- **Widgets** kapatıldı
+- **Activity History (Timeline)** kapatıldı
+- **App Launch Tracking** kapatıldı
+- **Start Menu Suggestions** kapatıldı
+- **Windows Spotlight** kapatıldı
+- **Windows Update Delivery Optimization (P2P)** kapatıldı
+- **Error Reporting** kapatıldı
+- **Background Apps Tracking** kapatıldı
+- **Tips & Tricks** kapatıldı
 - Reklam ID devre dışı
 - Cortana kapatıldı
 - Konum servisleri kapatıldı
@@ -180,8 +191,9 @@ python -m pip install --user -r requirements.txt
 - Windows Defender uyarısı çıkabilir (normaldir, "Yine de çalıştır")
 
 ### Restart sonrası değişiklikler geri alındı mı?
-Restart sırasında Windows'un loader göstermesi **normaldir**. Değişiklikleri kontrol etmek için:
+Restart sırasında Windows'un loader göstermesi **normaldir**. 
 
+**Kontrol için:**
 ```powershell
 .\check_changes.bat
 ```
@@ -190,10 +202,42 @@ Bu script şunları kontrol eder:
 - Telemetri durumu
 - Game Mode durumu
 - GPU Scheduling durumu
-- Servis durumları
+- Servis durumları (DiagTrack, WidgetsService)
 - Güç planı
+- Copilot (Windows 11 25H2)
+- Widgets
+- Activity History
+- P2P Update Sharing
+- Start Menu Suggestions
+
+**Otomatik rapor:**
+- Eğer uygulanmayan özellikler varsa, `optimizasyon_raporu.txt` dosyası oluşturulur
+- Dosya aynı klasörde bulunur
+- İçinde uygulanmayan özelliklerin listesi vardır
+
+**Telemetri için özel çözüm:**
+- Optimize script'i otomatik olarak scheduled task oluşturur
+- Her 5 dakikada bir telemetriyi kontrol edip kapatır
+- Windows'un tekrar açmasını engeller
 
 Eğer bazı ayarlar geri alınmışsa, `Windows11Optimizer.exe` dosyasını tekrar çalıştırabilirsiniz.
+
+## 🛡️ Windows Defender Hakkında
+
+**Atlas OS neden Defender'ı kaldırıyor?**
+- Kernel seviyesinde değişiklikler yapması (Defender engelleyebilir)
+- Maksimum performans hedefi (%2-5 CPU, ~100-200 MB RAM)
+- Oyun odaklı yaklaşım
+
+**Bizim yaklaşımımız:**
+- ✅ Defender açık bırakılıyor (güvenlik için)
+- ✅ Kernel seviyesinde değişiklik yapmıyoruz
+- ✅ Dengeli yaklaşım (oyun + güvenlik)
+
+**Defender'ı kapatmak isterseniz:**
+`config.json` dosyasında `security.disable_windows_defender: true` yapın.
+
+Detaylı bilgi için: [DEFENDER_NOTLAR.md](DEFENDER_NOTLAR.md)
 
 ## ⚠️ Uyarılar
 
@@ -201,6 +245,7 @@ Eğer bazı ayarlar geri alınmışsa, `Windows11Optimizer.exe` dosyasını tekr
 - Kullanmadan önce sistem yedeği alın
 - Bazı değişiklikler için sistem yeniden başlatma gerekebilir
 - Windows Update bazı ayarları geri alabilir
+- Windows Defender'ı kapatırsanız alternatif antivirus kullanın
 
 ## 📚 Dokümantasyon
 

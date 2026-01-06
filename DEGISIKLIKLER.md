@@ -120,6 +120,47 @@
 - Cortana devre dışı bırakıldı
   - `HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search\AllowCortana = 0`
 
+### Windows 11 25H2 Özellikleri
+- **Copilot kapatıldı**
+  - `HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\ShowCopilotButton = 0`
+  - `HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\CopilotTaskbarIcon = 0`
+  - `HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsCopilot\TurnOffWindowsCopilot = 0`
+
+- **Widgets kapatıldı**
+  - WidgetsService servisi durduruldu
+  - Taskbar widget ayarları kapatıldı
+
+### Arka Plan Veri Toplama
+- **Activity History (Timeline) kapatıldı**
+  - `HKLM\SOFTWARE\Policies\Microsoft\Windows\System\EnableActivityFeed = 0`
+  - `HKLM\SOFTWARE\Policies\Microsoft\Windows\System\PublishUserActivities = 0`
+  - `HKLM\SOFTWARE\Policies\Microsoft\Windows\System\UploadUserActivities = 0`
+
+- **App Launch Tracking kapatıldı**
+  - `HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\Start_TrackProgs = 0`
+  - `HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\Start_IrisRecommendations = 0`
+
+- **Start Menu Suggestions kapatıldı**
+  - `HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\SystemPaneSuggestionsEnabled = 0`
+  - `HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\PreInstalledAppsEnabled = 0`
+
+- **Windows Spotlight kapatıldı**
+  - `HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\RotatingLockScreenEnabled = 0`
+  - `HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\RotatingLockScreenOverlayEnabled = 0`
+
+- **Windows Update Delivery Optimization (P2P) kapatıldı**
+  - `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\DeliveryOptimization\Config\DODownloadMode = 0`
+  - `HKLM\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization\DODownloadMode = 0`
+
+- **Error Reporting kapatıldı**
+  - `HKLM\SOFTWARE\Microsoft\Windows\Windows Error Reporting\Disabled = 1`
+
+- **Background Apps Tracking kapatıldı**
+  - `HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications\GlobalUserDisabled = 0`
+
+- **Tips & Tricks kapatıldı**
+  - `HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\UserProfileEngagement\ScoobeSystemSettingEnabled = 0`
+
 ---
 
 ## 🎯 5. WINDOWS ÖZELLİKLERİ
