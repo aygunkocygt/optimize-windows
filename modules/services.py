@@ -123,10 +123,46 @@ class ServiceOptimizer:
         backup = {}
         for service in self.SERVICES_TO_DISABLE:
             try:
+                # QueryServiceStatus() tuple yapısı:
+                # (ServiceType, CurrentState, ControlsAccepted, Win32ExitCode, ServiceSpecificExitCode, CheckPoint, WaitHint)
                 status = win32serviceutil.QueryServiceStatus(service)
+
+                # StartType için QueryServiceConfig gerekir (QueryServiceStatus içinde yok).
+                # win32serviceutil.QueryServiceConfig bazı ortamlarda yok/erişilemez olabiliyor,
+                # bu yüzden Win32 Service API ile doğrudan okuyoruz.
+                start_type = None
+                try:
+                    scm = win32service.OpenSCManager(None, None, win32service.SC_MANAGER_CONNECT)
+                    try:
+                        svc = win32service.OpenService(scm, service, win32service.SERVICE_QUERY_CONFIG)
+                        try:
+                            cfg = win32service.QueryServiceConfig(svc)
+                            # (ServiceType, StartType, ErrorControl, BinaryPathName, ...)
+                            start_type = cfg[1]
+                        finally:
+                            win32service.CloseServiceHandle(svc)
+                    finally:
+                        win32service.CloseServiceHandle(scm)
+                except Exception:
+                    # Fallback: sc qc parse
+                    try:
+                        result = subprocess.run(["sc", "qc", service], capture_output=True, text=True, timeout=10)
+                        out = (result.stdout or "")
+                        for line in out.splitlines():
+                            if "START_TYPE" in line:
+                                # örn: "        START_TYPE         : 2   AUTO_START"
+                                parts = line.split(":")
+                                if len(parts) >= 2:
+                                    right = parts[1].strip()
+                                    num = right.split()[0].strip()
+                                    if num.isdigit():
+                                        start_type = int(num)
+                                break
+                    except Exception:
+                        start_type = None
                 backup[service] = {
                     "status": status[1],
-                    "start_type": status[4]
+                    "start_type": start_type
                 }
             except:
                 pass

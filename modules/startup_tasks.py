@@ -38,6 +38,95 @@ class StartupTasksOptimizer:
             "scheduled_tasks": [],
         }
 
+    @staticmethod
+    def _normalize_task_state(state_value: Any) -> str:
+        """
+        Get-ScheduledTask | Select State çıktısı bazen string ("Ready"/"Disabled"),
+        bazen de int (enum) gelebiliyor. Backup/restore için güvenli string'e çevir.
+        """
+        if state_value is None:
+            return ""
+        if isinstance(state_value, str):
+            return state_value.strip()
+        return str(state_value).strip()
+
+    @staticmethod
+    def _is_task_disabled(state_str: str) -> bool:
+        """
+        Get-ScheduledTask State enum:
+        1 = Disabled, 3 = Ready, 4 = Running, vb.
+        Bazı sistemlerde string ("Disabled") gelir; bazı sistemlerde "1" gibi numeric string.
+        """
+        s = (state_str or "").strip().lower()
+        return s == "disabled" or s == "1"
+
+    def snapshot_backup(self) -> Dict[str, Any]:
+        """
+        Optimize işleminden ÖNCE hedeflediğimiz startup/task state'ini yedekle.
+
+        Not: optimize() zaten dokunduğu girdileri backup içine ekler; ancak optimize.py yedek dosyasını
+        optimize() çağrısından önce diske yazdığı için, restore çalışsın diye bu snapshot gerekir.
+        """
+        # Startup targets
+        targets = [
+            (winreg.HKEY_CURRENT_USER, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", "HKCU"),
+            (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", "HKLM"),
+        ]
+        for root, subkey, hive_name in targets:
+            for name, value in self._iter_run_values(root, subkey):
+                if not self._should_disable_startup_entry(name, value):
+                    continue
+                self.backup["startup_entries"].append({
+                    "hive": hive_name,
+                    "path": subkey,
+                    "name": name,
+                    "value": value,
+                })
+
+        # Scheduled task targets (state snapshot)
+        # _disable_scheduled_tasks içindeki filtre mantığını paylaşmak için aynı query’yi yeniden kuruyoruz
+        filters: List[str] = []
+        if self.disable_telemetry_tasks:
+            filters.extend([
+                r'($_.TaskPath -like "\Microsoft\Windows\Customer Experience Improvement Program\*")',
+                r'($_.TaskPath -like "\Microsoft\Windows\Application Experience\*")',
+                r'($_.TaskPath -like "\Microsoft\Windows\Autochk\*") -and ($_.TaskName -like "*Proxy*")',
+                r'($_.TaskPath -like "\Microsoft\Windows\DiskDiagnostic\*")',
+                r'($_.TaskPath -like "\Microsoft\Windows\Feedback\*") -or ($_.TaskPath -like "\Microsoft\Windows\FeedbackHub\*")',
+            ])
+        if self.disable_gamedvr_tasks:
+            filters.append(r'($_.TaskPath -like "\Microsoft\Windows\GameDVR\*")')
+        if self.disable_xbox_tasks:
+            filters.append(r'($_.TaskPath -like "\Microsoft\XblGameSave\*")')
+        if self.disable_onedrive_tasks:
+            filters.append(r'($_.TaskPath -like "\Microsoft\Windows\OneDrive\*")')
+        filters.append(r'($_.TaskPath -like "\Microsoft\Windows\Windows Error Reporting\*")')
+
+        if filters:
+            where = " -or ".join(filters)
+            query_cmd = (
+                f'$t = Get-ScheduledTask | Where-Object {{ {where} }} | '
+                'Select-Object TaskName,TaskPath,State; '
+                '$t | ConvertTo-Json -Depth 4'
+            )
+            tasks = self._powershell_json(query_cmd, timeout=90)
+            if isinstance(tasks, dict):
+                tasks = [tasks]
+            if isinstance(tasks, list):
+                for t in tasks:
+                    task_name = t.get("TaskName")
+                    task_path = t.get("TaskPath")
+                    state = self._normalize_task_state(t.get("State"))
+                    if not task_name or not task_path:
+                        continue
+                    self.backup["scheduled_tasks"].append({
+                        "task_name": task_name,
+                        "task_path": task_path,
+                        "state": state,
+                    })
+
+        return self.backup
+
     # ---------- Startup (Run keys) ----------
     def _iter_run_values(self, root, subkey: str) -> List[Tuple[str, str]]:
         values: List[Tuple[str, str]] = []
@@ -166,7 +255,7 @@ class StartupTasksOptimizer:
             try:
                 task_name = t.get("TaskName")
                 task_path = t.get("TaskPath")
-                state = (t.get("State") or "").strip()
+                state = self._normalize_task_state(t.get("State"))
                 if not task_name or not task_path:
                     continue
 
@@ -177,7 +266,7 @@ class StartupTasksOptimizer:
                     "state": state,
                 })
 
-                if state.lower() == "disabled":
+                if self._is_task_disabled(state):
                     continue
 
                 disable_cmd = f'Disable-ScheduledTask -TaskName "{task_name}" -TaskPath "{task_path}" | Out-Null'

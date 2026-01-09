@@ -92,9 +92,11 @@ def restore_startup_tasks(backup_data):
         for t in tasks:
             task_name = t.get("task_name")
             task_path = t.get("task_path")
-            prev_state = (t.get("state") or "").strip().lower()
+            prev_state_val = t.get("state")
+            prev_state = (prev_state_val if isinstance(prev_state_val, str) else str(prev_state_val or "")).strip().lower()
             # Daha önce Disabled değilse enable et
-            if task_name and task_path and prev_state != "disabled":
+            # Not: State enum 1 = Disabled olabilir (bazı sistemler numeric döndürüyor)
+            if task_name and task_path and prev_state not in ("disabled", "1"):
                 try:
                     cmd = f'Enable-ScheduledTask -TaskName "{task_name}" -TaskPath "{task_path}" | Out-Null'
                     subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", cmd],

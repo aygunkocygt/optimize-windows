@@ -108,6 +108,32 @@ class WindowsOptimizer:
         UI.print_banner()
         UI.print_info("Sistem bilgileri kontrol ediliyor...")
         UI.loading_animation("Sistem hazırlanıyor", 0.5)
+
+    def configure_profile(self):
+        """
+        Tek profil ayarlarını merkezi şekilde uygula.
+        Bu fonksiyon backup'tan ÖNCE çağrılmalı ki snapshot/backup doğru flag'leri görsün.
+        """
+        # Servis trimming: kapalı (yan etki riski)
+        self.service_optimizer.aggressive_trim = False
+
+        # Scheduler tweaks: açık (1% low / input lag için)
+        self.registry_optimizer.apply_scheduler_tweaks = True
+
+        # Çekirdek yalıtımı (Core Isolation / Memory Integrity) = HVCI + VBS
+        # Oyun performansı için kapatıyoruz; Hyper-V/WSL2'ye dokunmuyoruz (bcdedit hypervisorlaunchtype yok).
+        self.security_virtualization_optimizer.disable_hvci = True
+        self.security_virtualization_optimizer.disable_vbs = True
+        self.security_virtualization_optimizer.disable_credential_guard = True
+        self.security_virtualization_optimizer.disable_hypervisor_launch = False
+
+        # Docker/dev uyumluluğu: WSL2 kapatma yok (isteğe göre değiştirilebilir)
+        self.features_optimizer.disable_wsl2 = False
+
+        # Startup/Tasks: Teams + OneDrive kapat
+        self.startup_tasks_optimizer.disable_teams_startup = True
+        self.startup_tasks_optimizer.disable_onedrive_startup = True
+        self.startup_tasks_optimizer.disable_onedrive_tasks = True
     
     def backup_current_settings(self):
         """Mevcut ayarları yedekle"""
@@ -120,8 +146,8 @@ class WindowsOptimizer:
             "services": self.service_optimizer.backup_services(),
             "registry": self.registry_optimizer.backup_registry(),
             "features": self.features_optimizer.backup_features(),
-            # Startup/Tasks trimming yedeği (restore için)
-            "startup_tasks": self.startup_tasks_optimizer.backup,
+            # Startup/Tasks trimming yedeği (restore için) - optimize() öncesi snapshot
+            "startup_tasks": self.startup_tasks_optimizer.snapshot_backup(),
             "onedrive": self.onedrive_optimizer.backup_state(),
         }
         
@@ -140,33 +166,12 @@ class WindowsOptimizer:
 
         UI.print_section_header("Profil")
         UI.print_info("Tek profil: Oyun performansı agresif + yazılım/Docker bozulmayacak")
-
-        # Servis trimming: kapalı (yan etki riski)
-        self.service_optimizer.aggressive_trim = False
         UI.print_info("Servis trimming: KAPALI (stabilite)")
-
-        # Scheduler tweaks: açık (1% low / input lag için)
-        self.registry_optimizer.apply_scheduler_tweaks = True
         UI.print_info("Scheduler tweak'leri: AÇIK")
-
-        # Çekirdek yalıtımı (Core Isolation / Memory Integrity) = HVCI + VBS
-        # Oyun performansı için kapatıyoruz; Hyper-V/WSL2'ye dokunmuyoruz (bcdedit hypervisorlaunchtype yok).
-        self.security_virtualization_optimizer.disable_hvci = True
-        self.security_virtualization_optimizer.disable_vbs = True
-        self.security_virtualization_optimizer.disable_credential_guard = True
-        self.security_virtualization_optimizer.disable_hypervisor_launch = False
         UI.print_warning("Core Isolation / Memory Integrity (HVCI): KAPATILACAK")
         UI.print_warning("VBS: KAPATILACAK")
         UI.print_warning("Credential Guard: KAPATILACAK")
-
-        # Docker/dev uyumluluğu: WSL2 kapatma yok
-        self.features_optimizer.disable_wsl2 = False
         UI.print_info("WSL2: DOKUNULMAYACAK (Docker/dev uyumluluğu)")
-
-        # Startup/Tasks: Teams + OneDrive kapat, diğerlerine dokunma
-        self.startup_tasks_optimizer.disable_teams_startup = True
-        self.startup_tasks_optimizer.disable_onedrive_startup = True
-        self.startup_tasks_optimizer.disable_onedrive_tasks = True
 
         optimizers = [
             ("Servisler", self.service_optimizer.optimize, "Windows servisleri optimize ediliyor..."),
@@ -224,6 +229,7 @@ def main():
     try:
         optimizer = WindowsOptimizer()
         optimizer.print_header()
+        optimizer.configure_profile()
         
         # Kullanıcı isteği: seçim/prompt yok. Bilgi amaçlı yazdırıp devam et.
         UI.print_warning("Bu script sistem ayarlarını değiştirecektir!")
