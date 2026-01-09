@@ -1,18 +1,18 @@
 @echo off
 REM ========================================
-REM Windows 11 Optimizer - Değişiklik Kontrolü
-REM Yapılan optimizasyonların aktif olup olmadığını kontrol eder
+REM Windows 11 Optimizer - Değişiklik Kontrolü (GÜNCEL)
+REM Amaç: optimizer'ın uyguladığı ayarların aktif olup olmadığını hızlıca raporlamak
+REM Not: Bu script SADECE kontrol eder, sistemde değişiklik yapmaz.
 REM ========================================
 
 setlocal enabledelayedexpansion
-
-REM Script'in bulunduğu dizine geç
 cd /d "%~dp0" 2>nul
 
 set "FAILED_COUNT=0"
 set "TOTAL_COUNT=0"
 set "FAILED_LIST="
 set "REPORT_FILE=optimizasyon_raporu.txt"
+set "CHECKS_TOTAL=19"
 
 echo.
 echo ========================================
@@ -20,304 +20,196 @@ echo   Windows 11 Optimizer - Kontrol
 echo ========================================
 echo.
 
-REM ========================================
-REM 1. TELEMETRİ KONTROLLERİ
-REM ========================================
-echo [1/10] Telemetri kontrol ediliyor...
+REM ------------------------------------------------
+REM 1) Telemetry registry (AllowTelemetry + MaxTelemetryAllowed)
+REM ------------------------------------------------
+echo [1/%CHECKS_TOTAL%] Telemetry (registry) kontrol ediliyor...
 set /a TOTAL_COUNT+=1
-reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection" /v AllowTelemetry >nul 2>&1
-if errorlevel 1 (
-    echo    [?] Telemetri ayari bulunamadi (muhtemelen kapatilmis)
-) else (
-    set TELEMETRY=
-    for /f "tokens=3" %%i in ('reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection" /v AllowTelemetry 2^>nul') do set TELEMETRY=%%i
-    if "!TELEMETRY!"=="0x0" (
-        echo    [OK] Telemetri KAPALI
-    ) else if "!TELEMETRY!"=="" (
-        echo    [?] Telemetri durumu okunamadi
-        set /a FAILED_COUNT+=1
-        set "FAILED_LIST=!FAILED_LIST!Telemetri (okunamadi)"
-    ) else (
-        echo    [!] Telemetri ACIK: !TELEMETRY!
-        set /a FAILED_COUNT+=1
-        set "FAILED_LIST=!FAILED_LIST!Telemetri (AciK: !TELEMETRY!)"
-    )
-)
+call :CheckRegDword "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection" "AllowTelemetry" "0x0" "AllowTelemetry (Policies\DataCollection)"
+call :CheckRegDword "HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection" "AllowTelemetry" "0x0" "AllowTelemetry (Policies\Microsoft\Windows\DataCollection)"
+call :CheckRegDword "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection" "MaxTelemetryAllowed" "0x0" "MaxTelemetryAllowed"
+call :CheckRegDword "HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection" "MaxTelemetryAllowed" "0x0" "MaxTelemetryAllowed (Policies)"
 echo.
 
-REM ========================================
-REM 2. GAME MODE
-REM ========================================
-echo [2/10] Game Mode kontrol ediliyor...
+REM ------------------------------------------------
+REM 2) Telemetry services (stopped + disabled)
+REM ------------------------------------------------
+echo [2/%CHECKS_TOTAL%] Telemetry servisleri kontrol ediliyor...
 set /a TOTAL_COUNT+=1
-reg query "HKCU\SOFTWARE\Microsoft\GameBar" /v AllowAutoGameMode >nul 2>&1
+call :CheckServiceStoppedDisabled "DiagTrack" "DiagTrack"
+call :CheckServiceStoppedDisabled "dmwappushservice" "dmwappushservice"
+call :CheckServiceStoppedDisabled "wisvc" "wisvc"
+echo.
+
+REM ------------------------------------------------
+REM 3) TelemetryBlocker scheduled task (persistence)
+REM ------------------------------------------------
+echo [3/%CHECKS_TOTAL%] TelemetryBlocker task kontrol ediliyor...
+set /a TOTAL_COUNT+=1
+schtasks /Query /TN "TelemetryBlocker" >nul 2>&1
 if errorlevel 1 (
-    echo    [?] Game Mode ayari bulunamadi
+    echo    [!] TelemetryBlocker task YOK (kalıcılık daha zayıf)
     set /a FAILED_COUNT+=1
-        set "FAILED_LIST=!FAILED_LIST! Game Mode (ayar bulunamadi)"
+    call :AddFail "TelemetryBlocker task (yok)"
 ) else (
-    set GAMEMODE=
-    for /f "tokens=3" %%i in ('reg query "HKCU\SOFTWARE\Microsoft\GameBar" /v AllowAutoGameMode 2^>nul') do set GAMEMODE=%%i
-    if "!GAMEMODE!"=="0x1" (
-        echo    [OK] Game Mode AKTIF
-    ) else if "!GAMEMODE!"=="" (
-        echo    [?] Game Mode durumu okunamadi
-        set /a FAILED_COUNT+=1
-        set "FAILED_LIST=!FAILED_LIST! Game Mode (okunamadi)"
-    ) else (
-        echo    [!] Game Mode pasif: !GAMEMODE!
-        set /a FAILED_COUNT+=1
-        set "FAILED_LIST=!FAILED_LIST! Game Mode (pasif: !GAMEMODE!)"
-    )
+    echo    [OK] TelemetryBlocker task VAR
 )
 echo.
 
-REM ========================================
-REM 3. GPU SCHEDULING
-REM ========================================
-echo [3/10] GPU Scheduling kontrol ediliyor...
+REM ------------------------------------------------
+REM 4) Game Mode
+REM ------------------------------------------------
+echo [4/%CHECKS_TOTAL%] Game Mode kontrol ediliyor...
 set /a TOTAL_COUNT+=1
-reg query "HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers" /v HwSchMode >nul 2>&1
-if errorlevel 1 (
-    echo    [?] GPU Scheduling ayari bulunamadi
-    set /a FAILED_COUNT+=1
-    set "FAILED_LIST=!FAILED_LIST! GPU Scheduling (ayar bulunamadi)"
-) else (
-    set GPUSCH=
-    for /f "tokens=3" %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers" /v HwSchMode 2^>nul') do set GPUSCH=%%i
-    if "!GPUSCH!"=="0x2" (
-        echo    [OK] GPU Scheduling AKTIF
-    ) else if "!GPUSCH!"=="" (
-        echo    [?] GPU Scheduling durumu okunamadi
-        set /a FAILED_COUNT+=1
-        set "FAILED_LIST=!FAILED_LIST! GPU Scheduling (okunamadi)"
-    ) else (
-        echo    [!] GPU Scheduling pasif: !GPUSCH!
-        set /a FAILED_COUNT+=1
-        set "FAILED_LIST=!FAILED_LIST! GPU Scheduling (pasif: !GPUSCH!)"
-    )
-)
+call :CheckRegDword "HKCU\SOFTWARE\Microsoft\GameBar" "AllowAutoGameMode" "0x1" "Game Mode"
 echo.
 
-REM ========================================
-REM 4. TELEMETRİ SERVİSİ
-REM ========================================
-echo [4/10] Telemetri servisi kontrol ediliyor...
+REM ------------------------------------------------
+REM 5) GPU Scheduling (HAGS)
+REM ------------------------------------------------
+echo [5/%CHECKS_TOTAL%] GPU Scheduling kontrol ediliyor...
 set /a TOTAL_COUNT+=1
-sc query DiagTrack >nul 2>&1
-if errorlevel 1 (
-    echo    [OK] DiagTrack servisi bulunamadi (muhtemelen kapatilmis)
-) else (
-    sc query DiagTrack 2>nul | findstr /I /C:"STOPPED" >nul
-    if not errorlevel 1 (
-        echo    [OK] DiagTrack servisi DURDURULMUS
-    ) else (
-        sc query DiagTrack 2>nul | findstr /I /C:"RUNNING" >nul
-        if not errorlevel 1 (
-            echo    [!] DiagTrack servisi CALISIYOR
-            set /a FAILED_COUNT+=1
-            set "FAILED_LIST=!FAILED_LIST! DiagTrack servisi (Calisiyor)"
-        ) else (
-            echo    [?] DiagTrack servisi durumu belirlenemedi
-            set /a FAILED_COUNT+=1
-            set "FAILED_LIST=!FAILED_LIST! DiagTrack servisi (belirlenemedi)"
-        )
-    )
-)
+call :CheckRegDword "HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers" "HwSchMode" "0x2" "GPU Scheduling (HwSchMode)"
 echo.
 
-REM ========================================
-REM 5. GÜÇ PLANI
-REM ========================================
-echo [5/10] Güç plani kontrol ediliyor...
+REM ------------------------------------------------
+REM 6) Power plan (GUID-based, locale-safe)
+REM ------------------------------------------------
+echo [6/%CHECKS_TOTAL%] Güç planı kontrol ediliyor...
 set /a TOTAL_COUNT+=1
-set POWER_SCHEME=
-for /f "tokens=*" %%i in ('powercfg /getactivescheme 2^>nul') do set POWER_SCHEME=%%i
+set "POWER_SCHEME="
+for /f "tokens=*" %%i in ('powercfg /getactivescheme 2^>nul') do set "POWER_SCHEME=%%i"
 if "!POWER_SCHEME!"=="" (
-    echo    [?] Güç plani okunamadi
+    echo    [!] Güç planı okunamadı
     set /a FAILED_COUNT+=1
-    set "FAILED_LIST=!FAILED_LIST! Guc plani (okunamadi)"
+    call :AddFail "Güç planı (okunamadı)"
 ) else (
-    echo !POWER_SCHEME! | findstr /i "high performance" >nul
+    echo !POWER_SCHEME! | findstr /i "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c" >nul
     if errorlevel 1 (
-        echo    [!] High Performance plani aktif degil
-        echo    Mevcut plan: !POWER_SCHEME!
+        echo    [!] High Performance (GUID) aktif değil
+        echo    Mevcut: !POWER_SCHEME!
         set /a FAILED_COUNT+=1
-        set "FAILED_LIST=!FAILED_LIST! Guc plani (High Performance degil)"
+        call :AddFail "Güç planı (High Performance değil)"
     ) else (
-        echo    [OK] High Performance plani AKTIF
+        echo    [OK] High Performance (GUID) aktif
     )
 )
 echo.
 
-REM ========================================
-REM 6. COPILOT (Windows 11 25H2)
-REM ========================================
-echo [6/10] Copilot kontrol ediliyor...
+REM ------------------------------------------------
+REM 7) Copilot (taskbar icon)
+REM ------------------------------------------------
+echo [7/%CHECKS_TOTAL%] Copilot kontrol ediliyor...
 set /a TOTAL_COUNT+=1
-reg query "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v ShowCopilotButton >nul 2>&1
-if errorlevel 1 (
-    echo    [?] Copilot ayari bulunamadi
-    set /a FAILED_COUNT+=1
-    set "FAILED_LIST=!FAILED_LIST! Copilot (ayar bulunamadi)"
-) else (
-    set COPILOT=
-    for /f "tokens=3" %%i in ('reg query "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v ShowCopilotButton 2^>nul') do set COPILOT=%%i
-    if "!COPILOT!"=="0x0" (
-        echo    [OK] Copilot KAPALI
-    ) else (
-        echo    [!] Copilot ACIK: !COPILOT!
-        set /a FAILED_COUNT+=1
-        set "FAILED_LIST=!FAILED_LIST! Copilot (AciK: !COPILOT!)"
-    )
-)
+call :CheckRegDword "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "ShowCopilotButton" "0x0" "Copilot (ShowCopilotButton)"
+call :CheckRegDwordOptional "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "CopilotTaskbarIcon" "0x0" "Copilot (CopilotTaskbarIcon)"
 echo.
 
-REM ========================================
-REM 7. WIDGETS
-REM ========================================
-echo [7/10] Widgets kontrol ediliyor...
+REM ------------------------------------------------
+REM 8) Widgets (registry)
+REM ------------------------------------------------
+echo [8/%CHECKS_TOTAL%] Widgets kontrol ediliyor...
 set /a TOTAL_COUNT+=1
-REM Windows 11'de WidgetsService farklı isimlerle olabilir
-sc query WidgetsService >nul 2>&1
-if errorlevel 1 (
-    REM Alternatif servis isimlerini kontrol et
-    sc query "WidgetsService" >nul 2>&1
-    if errorlevel 1 (
-        sc query "widgets" >nul 2>&1
-        if errorlevel 1 (
-            REM Servis bulunamadı - kayıt defterinden kontrol et
-            reg query "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v TaskbarDa >nul 2>&1
-            if errorlevel 1 (
-                echo    [OK] Widgets servisi bulunamadi (muhtemelen kapatilmis)
-            ) else (
-                set WIDGETS_REG=
-                for /f "tokens=3" %%i in ('reg query "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v TaskbarDa 2^>nul') do set WIDGETS_REG=%%i
-                if "!WIDGETS_REG!"=="0x0" (
-                    echo    [OK] Widgets KAPALI (kayit defteri)
-                ) else (
-                    echo    [!] Widgets ACIK (kayit defteri: !WIDGETS_REG!)
-                    set /a FAILED_COUNT+=1
-                    set "FAILED_LIST=!FAILED_LIST! Widgets (AciK: !WIDGETS_REG!)"
-                )
-            )
-        ) else (
-            REM widgets servisi bulundu
-            sc query "widgets" 2>nul | findstr /I /C:"STOPPED" >nul
-            if not errorlevel 1 (
-                echo    [OK] Widgets servisi DURDURULMUS
-            ) else (
-                sc query "widgets" 2>nul | findstr /I /C:"RUNNING" >nul
-                if not errorlevel 1 (
-                    echo    [!] Widgets servisi CALISIYOR
-                    set /a FAILED_COUNT+=1
-                    set "FAILED_LIST=!FAILED_LIST! Widgets (Calisiyor)"
-                ) else (
-                    echo    [OK] Widgets servisi durumu belirlenemedi ama muhtemelen kapali
-                )
-            )
-        )
-    ) else (
-        REM WidgetsService bulundu
-        sc query "WidgetsService" 2>nul | findstr /I /C:"STOPPED" >nul
-        if not errorlevel 1 (
-            echo    [OK] WidgetsService servisi DURDURULMUS
-        ) else (
-            sc query "WidgetsService" 2>nul | findstr /I /C:"RUNNING" >nul
-            if not errorlevel 1 (
-                echo    [!] WidgetsService servisi CALISIYOR
-                set /a FAILED_COUNT+=1
-                set "FAILED_LIST=!FAILED_LIST! WidgetsService (Calisiyor)"
-            ) else (
-                echo    [OK] WidgetsService durumu belirlenemedi ama muhtemelen kapali
-            )
-        )
-    )
-) else (
-    REM WidgetsService bulundu
-    sc query WidgetsService 2>nul | findstr /I /C:"STOPPED" >nul
-    if not errorlevel 1 (
-        echo    [OK] WidgetsService servisi DURDURULMUS
-    ) else (
-        sc query WidgetsService 2>nul | findstr /I /C:"RUNNING" >nul
-        if not errorlevel 1 (
-            echo    [!] WidgetsService servisi CALISIYOR
-            set /a FAILED_COUNT+=1
-            set "FAILED_LIST=!FAILED_LIST! WidgetsService (Calisiyor)"
-        ) else (
-            echo    [OK] WidgetsService durumu belirlenemedi ama muhtemelen kapali
-        )
-    )
-)
+call :CheckRegDwordOptional "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "TaskbarDa" "0x0" "Widgets (TaskbarDa)"
 echo.
 
-REM ========================================
-REM 8. ACTIVITY HISTORY (TIMELINE)
-REM ========================================
-echo [8/10] Activity History kontrol ediliyor...
+REM ------------------------------------------------
+REM 9) Activity History (Timeline)
+REM ------------------------------------------------
+echo [9/%CHECKS_TOTAL%] Activity History kontrol ediliyor...
 set /a TOTAL_COUNT+=1
-reg query "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v EnableActivityFeed >nul 2>&1
-if errorlevel 1 (
-    echo    [?] Activity History ayari bulunamadi
-    set /a FAILED_COUNT+=1
-    set "FAILED_LIST=!FAILED_LIST! Activity History (ayar bulunamadi)"
-) else (
-    set ACTIVITY=
-    for /f "tokens=3" %%i in ('reg query "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v EnableActivityFeed 2^>nul') do set ACTIVITY=%%i
-    if "!ACTIVITY!"=="0x0" (
-        echo    [OK] Activity History KAPALI
-    ) else (
-        echo    [!] Activity History ACIK: !ACTIVITY!
-        set /a FAILED_COUNT+=1
-        set "FAILED_LIST=!FAILED_LIST! Activity History (AciK: !ACTIVITY!)"
-    )
-)
+call :CheckRegDword "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" "EnableActivityFeed" "0x0" "Activity History"
+call :CheckRegDwordOptional "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" "PublishUserActivities" "0x0" "PublishUserActivities"
+call :CheckRegDwordOptional "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" "UploadUserActivities" "0x0" "UploadUserActivities"
 echo.
 
-REM ========================================
-REM 9. WINDOWS UPDATE DELIVERY OPTIMIZATION (P2P)
-REM ========================================
-echo [9/10] Windows Update P2P kontrol ediliyor...
+REM ------------------------------------------------
+REM 10) Delivery Optimization (P2P)
+REM ------------------------------------------------
+echo [10/%CHECKS_TOTAL%] Windows Update P2P kontrol ediliyor...
 set /a TOTAL_COUNT+=1
-reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\DeliveryOptimization\Config" /v DODownloadMode >nul 2>&1
-if errorlevel 1 (
-    echo    [?] P2P Update ayari bulunamadi
-    set /a FAILED_COUNT+=1
-    set "FAILED_LIST=!FAILED_LIST! P2P Update (ayar bulunamadi)"
-) else (
-    set P2P=
-    for /f "tokens=3" %%i in ('reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\DeliveryOptimization\Config" /v DODownloadMode 2^>nul') do set P2P=%%i
-    if "!P2P!"=="0x0" (
-        echo    [OK] P2P Update Sharing KAPALI
-    ) else (
-        echo    [!] P2P Update Sharing ACIK: !P2P!
-        set /a FAILED_COUNT+=1
-        set "FAILED_LIST=!FAILED_LIST! P2P Update Sharing (AciK: !P2P!)"
-    )
-)
+call :CheckRegDword "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\DeliveryOptimization\Config" "DODownloadMode" "0x0" "P2P (DODownloadMode)"
 echo.
 
-REM ========================================
-REM 10. START MENU SUGGESTIONS
-REM ========================================
-echo [10/10] Start Menu Suggestions kontrol ediliyor...
+REM ------------------------------------------------
+REM 11) Start Menu Suggestions
+REM ------------------------------------------------
+echo [11/%CHECKS_TOTAL%] Start Menu Suggestions kontrol ediliyor...
 set /a TOTAL_COUNT+=1
-reg query "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v SystemPaneSuggestionsEnabled >nul 2>&1
-if errorlevel 1 (
-    echo    [?] Start Menu Suggestions ayari bulunamadi
-    set /a FAILED_COUNT+=1
-    set "FAILED_LIST=!FAILED_LIST! Start Menu Suggestions (ayar bulunamadi)"
-) else (
-    set SUGGESTIONS=
-    for /f "tokens=3" %%i in ('reg query "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v SystemPaneSuggestionsEnabled 2^>nul') do set SUGGESTIONS=%%i
-    if "!SUGGESTIONS!"=="0x0" (
-        echo    [OK] Start Menu Suggestions KAPALI
-    ) else (
-        echo    [!] Start Menu Suggestions ACIK: !SUGGESTIONS!
-        set /a FAILED_COUNT+=1
-        set "FAILED_LIST=!FAILED_LIST! Start Menu Suggestions (AciK: !SUGGESTIONS!)"
-    )
-)
+call :CheckRegDword "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" "SystemPaneSuggestionsEnabled" "0x0" "Start Menu Suggestions"
+echo.
+
+REM ------------------------------------------------
+REM 12) GameDVR / Capture (Xbox capture kapalı)
+REM ------------------------------------------------
+echo [12/%CHECKS_TOTAL%] GameDVR/Capture kontrol ediliyor...
+set /a TOTAL_COUNT+=1
+call :CheckRegDword "HKLM\SOFTWARE\Policies\Microsoft\Windows\GameDVR" "AllowGameDVR" "0x0" "AllowGameDVR"
+call :CheckRegDword "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR" "AppCaptureEnabled" "0x0" "AppCaptureEnabled"
+call :CheckRegDwordOptional "HKCU\SYSTEM\GameConfigStore" "GameDVR_Enabled" "0x0" "GameDVR_Enabled"
+echo.
+
+REM ------------------------------------------------
+REM 13) Web Search (Bing) kapalı
+REM ------------------------------------------------
+echo [13/%CHECKS_TOTAL%] Web/Bing Search kontrol ediliyor...
+set /a TOTAL_COUNT+=1
+call :CheckRegDword "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" "DisableWebSearch" "0x1" "DisableWebSearch"
+call :CheckRegDwordOptional "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" "ConnectedSearchUseWeb" "0x0" "ConnectedSearchUseWeb"
+call :CheckRegDwordOptional "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" "BingSearchEnabled" "0x0" "BingSearchEnabled"
+echo.
+
+REM ------------------------------------------------
+REM 14) Notifications/Toasts kapalı
+REM ------------------------------------------------
+echo [14/%CHECKS_TOTAL%] Bildirim (Toast) kontrol ediliyor...
+set /a TOTAL_COUNT+=1
+call :CheckRegDwordOptional "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications" "ToastEnabled" "0x0" "ToastEnabled"
+echo.
+
+REM ------------------------------------------------
+REM 15) UI Effects (Transparency/Taskbar animations)
+REM ------------------------------------------------
+echo [15/%CHECKS_TOTAL%] UI efektleri kontrol ediliyor...
+set /a TOTAL_COUNT+=1
+call :CheckRegDwordOptional "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize" "EnableTransparency" "0x0" "EnableTransparency"
+call :CheckRegDwordOptional "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" "TaskbarAnimations" "0x0" "TaskbarAnimations"
+echo.
+
+REM ------------------------------------------------
+REM 16) Background apps policy
+REM ------------------------------------------------
+echo [16/%CHECKS_TOTAL%] Background apps policy kontrol ediliyor...
+set /a TOTAL_COUNT+=1
+call :CheckRegDword "HKLM\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy" "LetAppsRunInBackground" "0x2" "LetAppsRunInBackground"
+echo.
+
+REM ------------------------------------------------
+REM 17) OneDrive policy (sync kapalı)
+REM ------------------------------------------------
+echo [17/%CHECKS_TOTAL%] OneDrive policy kontrol ediliyor...
+set /a TOTAL_COUNT+=1
+call :CheckRegDword "HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive" "DisableFileSyncNGSC" "0x1" "DisableFileSyncNGSC"
+echo.
+
+REM ------------------------------------------------
+REM 18) Scheduler tweaks (Multimedia\SystemProfile)
+REM ------------------------------------------------
+echo [18/%CHECKS_TOTAL%] Scheduler tweak'leri kontrol ediliyor...
+set /a TOTAL_COUNT+=1
+call :CheckRegDword "HKLM\SYSTEM\CurrentControlSet\Control\PriorityControl" "Win32PrioritySeparation" "0x26" "Win32PrioritySeparation"
+call :CheckRegDword "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" "SystemResponsiveness" "0xa" "SystemResponsiveness"
+call :CheckRegDwordOptional "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games" "Priority" "0x6" "Games Priority"
+echo.
+
+REM ------------------------------------------------
+REM 19) Core Isolation / VBS / HVCI / Credential Guard
+REM ------------------------------------------------
+echo [19/%CHECKS_TOTAL%] VBS/HVCI/Credential Guard kontrol ediliyor...
+set /a TOTAL_COUNT+=1
+call :CheckRegDwordOptional "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard" "EnableVirtualizationBasedSecurity" "0x0" "VBS"
+call :CheckRegDwordOptional "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" "Enabled" "0x0" "HVCI"
+call :CheckRegDwordOptional "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" "LsaCfgFlags" "0x0" "Credential Guard"
 echo.
 
 REM ========================================
@@ -340,9 +232,9 @@ echo Optimizasyon Orani: %OPT_PERCENT%%%
 echo.
 
 if %FAILED_COUNT% GTR 0 (
-    echo [!] %FAILED_COUNT% ozellik uygulanmamis veya geri alinmis!
+    echo [!] %FAILED_COUNT% madde uygulanmamis veya geri alinmis gorunuyor.
     echo.
-    echo Uygulanmayan ozellikler:
+    echo Uygulanmayanlar:
     echo !FAILED_LIST!
     echo.
     
@@ -350,7 +242,7 @@ if %FAILED_COUNT% GTR 0 (
     set "REPORT_FILE=optimizasyon_raporu.txt"
     (
         echo ========================================
-        echo   Windows 11 Optimizer - Uygulanmayan Ozellikler
+        echo   Windows 11 Optimizer - Uygulanmayanlar
         echo   Tarih: %DATE% %TIME%
         echo ========================================
         echo.
@@ -359,25 +251,106 @@ if %FAILED_COUNT% GTR 0 (
         echo Basarili: %SUCCESS_COUNT%
         echo Optimizasyon Orani: %OPT_PERCENT%%%
         echo.
-        echo UYGULANMAYAN OZELLIKLER:
+        echo UYGULANMAYANLAR:
         echo.
         echo !FAILED_LIST!
         echo.
-        echo NOT: Bu ozellikleri tekrar uygulamak icin
-        echo Windows11Optimizer.exe dosyasini yonetici olarak calistirin.
+        echo NOT: Yeniden uygulamak icin Windows11Optimizer.exe'yi yonetici olarak calistirin.
     ) > "%REPORT_FILE%"
     
     echo Rapor dosyasi olusturuldu: %REPORT_FILE%
     echo.
-    echo NOT: Eger [!] isaretli maddeler varsa, Windows Update
-    echo bazı ayarlari geri almış olabilir. Bu durumda optimize.exe
-    echo dosyasini tekrar calistirabilirsiniz.
+    echo NOT: Eger [!] isaretli maddeler varsa, Windows Update bazi ayarlari geri almis olabilir.
 ) else (
-    echo [OK] Tum ozellikler basariyla uygulanmis!
+    echo [OK] Tum kontroller basarili gorunuyor.
     echo.
 )
 
 echo.
 echo Devam etmek icin bir tusa basin...
 pause
+exit /b 0
+
+REM ========================================
+REM Helpers
+REM ========================================
+:AddFail
+set "ITEM=%~1"
+if "!FAILED_LIST!"=="" (
+    set "FAILED_LIST=%ITEM%"
+) else (
+    set "FAILED_LIST=!FAILED_LIST! ^| %ITEM%"
+)
+exit /b 0
+
+:CheckRegDword
+set "KEY=%~1"
+set "VAL=%~2"
+set "EXPECT=%~3"
+set "LABEL=%~4"
+set "DATA="
+for /f "tokens=3" %%i in ('reg query "%KEY%" /v "%VAL%" 2^>nul') do set "DATA=%%i"
+if "!DATA!"=="" (
+    echo    [!] !LABEL! okunamadi / yok
+    set /a FAILED_COUNT+=1
+    call :AddFail "!LABEL! (yok)"
+    exit /b 0
+)
+if /i "!DATA!"=="%EXPECT%" (
+    echo    [OK] !LABEL!
+) else (
+    echo    [!] !LABEL! beklenen=%EXPECT% mevcut=!DATA!
+    set /a FAILED_COUNT+=1
+    call :AddFail "!LABEL! (!DATA!)"
+)
+exit /b 0
+
+:CheckRegDwordOptional
+set "KEY=%~1"
+set "VAL=%~2"
+set "EXPECT=%~3"
+set "LABEL=%~4"
+set "DATA="
+for /f "tokens=3" %%i in ('reg query "%KEY%" /v "%VAL%" 2^>nul') do set "DATA=%%i"
+if "!DATA!"=="" (
+    echo    [?] !LABEL! bulunamadi (opsiyonel)
+    exit /b 0
+)
+if /i "!DATA!"=="%EXPECT%" (
+    echo    [OK] !LABEL!
+) else (
+    echo    [!] !LABEL! beklenen=%EXPECT% mevcut=!DATA!
+    set /a FAILED_COUNT+=1
+    call :AddFail "!LABEL! (!DATA!)"
+)
+exit /b 0
+
+:CheckServiceStoppedDisabled
+set "SVC=%~1"
+set "LABEL=%~2"
+sc query "%SVC%" >nul 2>&1
+if errorlevel 1 (
+    echo    [?] %LABEL% servisi bulunamadi
+    exit /b 0
+)
+set "RUNSTATE="
+sc query "%SVC%" 2>nul | findstr /I /C:"STOPPED" >nul && set "RUNSTATE=STOPPED"
+if not defined RUNSTATE (
+    sc query "%SVC%" 2>nul | findstr /I /C:"RUNNING" >nul && set "RUNSTATE=RUNNING"
+)
+set "STARTTYPE="
+for /f "tokens=4" %%i in ('sc qc "%SVC%" 2^>nul ^| findstr /I "START_TYPE"') do set "STARTTYPE=%%i"
+if /i "!RUNSTATE!"=="STOPPED" (
+    if "!STARTTYPE!"=="4" (
+        echo    [OK] %LABEL% STOPPED + DISABLED
+    ) else (
+        echo    [!] %LABEL% STOPPED ama start_type=%STARTTYPE%
+        set /a FAILED_COUNT+=1
+        call :AddFail "%LABEL% (start_type=%STARTTYPE%)"
+    )
+) else (
+    echo    [!] %LABEL% RUNNING
+    set /a FAILED_COUNT+=1
+    call :AddFail "%LABEL% (running)"
+)
 exit /b 0
