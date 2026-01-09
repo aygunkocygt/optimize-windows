@@ -19,18 +19,24 @@ class FeaturesOptimizer:
         "WindowsMediaPlayer",                # Windows Media Player (isteğe bağlı)
         "Internet-Explorer-Optional-amd64",  # Internet Explorer (kaldırıldı ama bazı sistemlerde kalabilir)
     ]
+
+    # WSL2 kapatma için gerekli opsiyonel özellikler
+    WSL_FEATURES = [
+        "Microsoft-Windows-Subsystem-Linux",  # WSL
+        "VirtualMachinePlatform",             # WSL2 altyapısı
+    ]
     
     # Korunacak özellikler (yazılım geliştirme için)
     FEATURES_TO_KEEP = [
-        "Microsoft-Windows-Subsystem-Linux",  # WSL2
         "Microsoft-Hyper-V-All",              # Hyper-V (isteğe bağlı)
         "Containers",                         # Containers
-        "VirtualMachinePlatform",             # Virtual Machine Platform
     ]
     
     def __init__(self):
         self.changes = []
         self.features_backup = {}
+        # Kullanıcı tercihleri / mod ayarı (optimize.py tarafından set edilebilir)
+        self.disable_wsl2: bool = False
     
     def disable_feature(self, feature_name):
         """Windows özelliğini devre dışı bırak"""
@@ -55,32 +61,37 @@ class FeaturesOptimizer:
             return False
     
     def backup_features(self):
-        """Mevcut özellik durumlarını yedekle"""
-        try:
-            cmd = 'Get-WindowsOptionalFeature -Online | ConvertTo-Json'
-            result = subprocess.run(
-                ["powershell", "-Command", cmd],
-                capture_output=True,
-                text=True,
-                timeout=30
-            )
-            
-            if result.returncode == 0:
-                features = json.loads(result.stdout)
-                if isinstance(features, dict):
-                    features = [features]
-                return {f["FeatureName"]: f["State"] for f in features if isinstance(f, dict)}
-        except:
-            pass
-        return {}
+        """Mevcut özellik durumlarını yedekle (sadece dokunabileceğimiz özellikler)"""
+        states = {}
+        feature_names = sorted(set(self.FEATURES_TO_DISABLE + self.WSL_FEATURES + self.FEATURES_TO_KEEP))
+        for feature in feature_names:
+            try:
+                cmd = f'(Get-WindowsOptionalFeature -Online -FeatureName "{feature}" -ErrorAction SilentlyContinue).State'
+                result = subprocess.run(
+                    ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", cmd],
+                    capture_output=True,
+                    text=True,
+                    timeout=20
+                )
+                if result.returncode == 0:
+                    state = (result.stdout or "").strip()
+                    if state:
+                        states[feature] = state
+            except:
+                pass
+        return states
     
     def optimize(self):
         """Windows özelliklerini optimize et"""
         changes = []
         
         print("   📋 Windows özellikleri kontrol ediliyor...")
-        
-        for feature in self.FEATURES_TO_DISABLE:
+
+        features = list(self.FEATURES_TO_DISABLE)
+        if getattr(self, "disable_wsl2", False):
+            features.extend(self.WSL_FEATURES)
+
+        for feature in features:
             if feature in self.FEATURES_TO_KEEP:
                 continue  # Korunacak özellikleri atla
             

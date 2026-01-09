@@ -41,6 +41,17 @@ class ServiceOptimizer:
         "TrkWks",                       # Distributed Link Tracking Client
         "Browser",                       # Computer Browser (eski ağ özelliği)
     ]
+
+    # "Servis trimming" (daha agresif, opsiyonel) - bazı özellikleri etkileyebilir
+    # Bu liste optimize.py tarafında kullanıcı onayıyla devreye alınır.
+    TRIM_SERVICES_TO_DISABLE = [
+        "Fax",                           # Fax
+        "lfsvc",                         # Geolocation Service
+        "MapsBroker",                    # Downloaded Maps Manager
+        "SharedAccess",                  # Internet Connection Sharing (ICS)
+        "diagnosticshub.standardcollector.service",  # Diagnostic Hub Standard Collector
+        "Wecsvc",                        # Windows Event Collector (kurumsal/forwarding yoksa)
+    ]
     
     # Korunacak servisler (yazılım geliştirme için gerekli)
     SERVICES_TO_KEEP = [
@@ -67,6 +78,7 @@ class ServiceOptimizer:
     
     def __init__(self):
         self.changes = []
+        self.aggressive_trim = False
     
     def get_service_status(self, service_name):
         """Servis durumunu kontrol et"""
@@ -126,7 +138,11 @@ class ServiceOptimizer:
         
         print("   📋 Servisler kontrol ediliyor...")
         
-        for service in self.SERVICES_TO_DISABLE:
+        services = list(self.SERVICES_TO_DISABLE)
+        if getattr(self, "aggressive_trim", False):
+            services.extend(self.TRIM_SERVICES_TO_DISABLE)
+
+        for service in services:
             if service in self.SERVICES_TO_KEEP:
                 continue  # Korunacak servisleri atla
             

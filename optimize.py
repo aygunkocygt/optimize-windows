@@ -12,30 +12,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-# Yönetici hakları kontrolü
-def is_admin():
-    """Yönetici hakları kontrolü"""
-    try:
-        return os.getuid() == 0
-    except AttributeError:
-        import ctypes
-        return ctypes.windll.shell32.IsUserAnAdmin() != 0
-
-if not is_admin():
-    UI.print_error("Bu script yönetici haklarıyla çalıştırılmalıdır!")
-    UI.print_warning("Lütfen PowerShell veya CMD'yi 'Yönetici olarak çalıştır' ile açın.")
-    input("\nDevam etmek için bir tuşa basın...")
-    sys.exit(1)
-
-# Modülleri import et
-from modules.services import ServiceOptimizer
-from modules.registry import RegistryOptimizer
-from modules.features import FeaturesOptimizer
-from modules.performance import PerformanceOptimizer
-from modules.privacy import PrivacyOptimizer
-from modules.apps_remover import AppsRemover
-
-# UI modülünü import et
+# UI modülünü import et (admin kontrolünden önce)
 try:
     from modules.ui import UI
     from colorama import Fore, Style
@@ -59,19 +36,52 @@ except ImportError:
         @staticmethod
         def print_section_header(title): print(f"\n{'='*70}\n{title}\n{'='*70}\n")
         @staticmethod
-        def print_summary_box(title, items): 
+        def print_summary_box(title, items):
             print(f"\n{title}")
             for item in items: print(f"  {item}")
         @staticmethod
         def loading_animation(msg, d): print(f"⏳ {msg}")
         @staticmethod
-        def ask_confirmation(msg): 
+        def ask_confirmation(msg):
             response = input(f"{msg} ").strip().upper()
             return response == 'E' or response == 'Y'
         @staticmethod
         def wait_for_key(msg=""): input(msg)
     Fore = type('Fore', (), {'CYAN': '', 'GREEN': '', 'YELLOW': '', 'RED': '', 'MAGENTA': '', 'WHITE': ''})()
     Style = type('Style', (), {'RESET_ALL': ''})()
+
+"""
+Profil yaklaşımı (tek yapı):
+- Kullanıcıdan seçim istemiyoruz
+- Tek bir agresif oyun profili uyguluyoruz
+- Yazılım/Docker bozulmaması için WSL2/Hyper-V dokunulmuyor
+"""
+
+# Yönetici hakları kontrolü
+def is_admin():
+    """Yönetici hakları kontrolü"""
+    try:
+        return os.getuid() == 0
+    except AttributeError:
+        import ctypes
+        return ctypes.windll.shell32.IsUserAnAdmin() != 0
+
+if not is_admin():
+    UI.print_error("Bu script yönetici haklarıyla çalıştırılmalıdır!")
+    UI.print_warning("Lütfen PowerShell veya CMD'yi 'Yönetici olarak çalıştır' ile açın.")
+    input("\nDevam etmek için bir tuşa basın...")
+    sys.exit(1)
+
+# Modülleri import et
+from modules.services import ServiceOptimizer
+from modules.registry import RegistryOptimizer
+from modules.features import FeaturesOptimizer
+from modules.performance import PerformanceOptimizer
+from modules.privacy import PrivacyOptimizer
+from modules.apps_remover import AppsRemover
+from modules.security_virtualization import SecurityVirtualizationOptimizer
+from modules.startup_tasks import StartupTasksOptimizer
+from modules.onedrive_optimizer import OneDriveOptimizer
 
 class WindowsOptimizer:
     """Ana optimizasyon sınıfı"""
@@ -89,6 +99,9 @@ class WindowsOptimizer:
         self.performance_optimizer = PerformanceOptimizer()
         self.privacy_optimizer = PrivacyOptimizer()
         self.apps_remover = AppsRemover()
+        self.security_virtualization_optimizer = SecurityVirtualizationOptimizer()
+        self.startup_tasks_optimizer = StartupTasksOptimizer()
+        self.onedrive_optimizer = OneDriveOptimizer()
     
     def print_header(self):
         """Başlık yazdır"""
@@ -106,7 +119,10 @@ class WindowsOptimizer:
             "timestamp": datetime.now().isoformat(),
             "services": self.service_optimizer.backup_services(),
             "registry": self.registry_optimizer.backup_registry(),
-            "features": self.features_optimizer.backup_features()
+            "features": self.features_optimizer.backup_features(),
+            # Startup/Tasks trimming yedeği (restore için)
+            "startup_tasks": self.startup_tasks_optimizer.backup,
+            "onedrive": self.onedrive_optimizer.backup_state(),
         }
         
         UI.print_info("Kayıt defteri ayarları kaydediliyor...")
@@ -121,13 +137,47 @@ class WindowsOptimizer:
     def optimize_all(self):
         """Tüm optimizasyonları uygula"""
         UI.print_step(2, 3, "Optimizasyonlar Uygulanıyor")
-        
+
+        UI.print_section_header("Profil")
+        UI.print_info("Tek profil: Oyun performansı agresif + yazılım/Docker bozulmayacak")
+
+        # Servis trimming: kapalı (yan etki riski)
+        self.service_optimizer.aggressive_trim = False
+        UI.print_info("Servis trimming: KAPALI (stabilite)")
+
+        # Scheduler tweaks: açık (1% low / input lag için)
+        self.registry_optimizer.apply_scheduler_tweaks = True
+        UI.print_info("Scheduler tweak'leri: AÇIK")
+
+        # Çekirdek yalıtımı (Core Isolation / Memory Integrity) = HVCI + VBS
+        # Oyun performansı için kapatıyoruz; Hyper-V/WSL2'ye dokunmuyoruz (bcdedit hypervisorlaunchtype yok).
+        self.security_virtualization_optimizer.disable_hvci = True
+        self.security_virtualization_optimizer.disable_vbs = True
+        self.security_virtualization_optimizer.disable_credential_guard = True
+        self.security_virtualization_optimizer.disable_hypervisor_launch = False
+        UI.print_warning("Core Isolation / Memory Integrity (HVCI): KAPATILACAK")
+        UI.print_warning("VBS: KAPATILACAK")
+        UI.print_warning("Credential Guard: KAPATILACAK")
+
+        # Docker/dev uyumluluğu: WSL2 kapatma yok
+        self.features_optimizer.disable_wsl2 = False
+        UI.print_info("WSL2: DOKUNULMAYACAK (Docker/dev uyumluluğu)")
+
+        # Startup/Tasks: Teams + OneDrive kapat, diğerlerine dokunma
+        self.startup_tasks_optimizer.disable_teams_startup = True
+        self.startup_tasks_optimizer.disable_onedrive_startup = True
+        self.startup_tasks_optimizer.disable_onedrive_tasks = True
+
         optimizers = [
             ("Servisler", self.service_optimizer.optimize, "Windows servisleri optimize ediliyor..."),
             ("Kayıt Defteri", self.registry_optimizer.optimize, "Kayıt defteri ayarları uygulanıyor..."),
             ("Windows Özellikleri", self.features_optimizer.optimize, "Windows özellikleri kontrol ediliyor..."),
             ("Performans", self.performance_optimizer.optimize, "Performans ayarları optimize ediliyor..."),
             ("Gizlilik", self.privacy_optimizer.optimize, "Gizlilik ayarları uygulanıyor..."),
+            ("Startup/Tasks Trimming", self.startup_tasks_optimizer.optimize, "Startup ve scheduled task trimming uygulanıyor..."),
+            ("OneDrive", self.onedrive_optimizer.optimize, "OneDrive kaldırma/devre dışı bırakma uygulanıyor..."),
+            ("VBS / HVCI / Credential Guard", self.security_virtualization_optimizer.apply_vbs_off,
+             "Güvenlik/virtualization tweak'leri uygulanıyor..."),
             ("Gereksiz Uygulamalar", lambda: self.apps_remover.optimize(remove_mode=True), "Gereksiz uygulamalar kaldırılıyor...")
         ]
         
@@ -175,18 +225,11 @@ def main():
         optimizer = WindowsOptimizer()
         optimizer.print_header()
         
-        # Onay iste
+        # Kullanıcı isteği: seçim/prompt yok. Bilgi amaçlı yazdırıp devam et.
         UI.print_warning("Bu script sistem ayarlarını değiştirecektir!")
-        UI.print_info("Yapılacak değişiklikler:")
-        print(f"  • {Fore.CYAN}~19 servis{Style.RESET_ALL} devre dışı bırakılacak")
-        print(f"  • {Fore.CYAN}~18+ kayıt defteri{Style.RESET_ALL} ayarı optimize edilecek")
-        print(f"  • {Fore.CYAN}Performans ve gizlilik{Style.RESET_ALL} ayarları uygulanacak")
+        UI.print_info("Yapılacak değişiklikler (otomatik uygulanacak):")
+        print(f"  • {Fore.CYAN}Servis/registry/performance/privacy{Style.RESET_ALL} optimizasyonları")
         print(f"  • {Fore.GREEN}Tüm değişiklikler yedeklenecek{Style.RESET_ALL}")
-        
-        if not UI.ask_confirmation("Devam etmek istiyor musunuz? (E/H):"):
-            UI.print_error("İşlem kullanıcı tarafından iptal edildi.")
-            UI.wait_for_key()
-            return
         
         # Yedekle
         optimizer.backup_current_settings()

@@ -327,9 +327,16 @@ echo ========================================
 echo   Kontrol Tamamlandi
 echo ========================================
 echo.
+set /a SUCCESS_COUNT=%TOTAL_COUNT%-%FAILED_COUNT%
+if %TOTAL_COUNT% GTR 0 (
+    set /a OPT_PERCENT=SUCCESS_COUNT*100/TOTAL_COUNT
+) else (
+    set /a OPT_PERCENT=0
+)
 echo Toplam kontrol edilen: %TOTAL_COUNT%
 echo Basarisiz/Uygulanmamis: %FAILED_COUNT%
-echo Basarili: %TOTAL_COUNT% - %FAILED_COUNT%
+echo Basarili: %SUCCESS_COUNT%
+echo Optimizasyon Orani: %OPT_PERCENT%%%
 echo.
 
 if %FAILED_COUNT% GTR 0 (
@@ -349,7 +356,8 @@ if %FAILED_COUNT% GTR 0 (
         echo.
         echo Toplam kontrol edilen: %TOTAL_COUNT%
         echo Basarisiz/Uygulanmamis: %FAILED_COUNT%
-        echo Basarili: %TOTAL_COUNT% - %FAILED_COUNT%
+        echo Basarili: %SUCCESS_COUNT%
+        echo Optimizasyon Orani: %OPT_PERCENT%%%
         echo.
         echo UYGULANMAYAN OZELLIKLER:
         echo.
